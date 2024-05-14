@@ -71,6 +71,20 @@ def test_sigterm_handler_can_be_added(tmp_path):
 
 
 @RunIf(skip_windows=True)
+@mock.patch("lightning.fabric.plugins.environments.slurm.SLURMEnvironment.detect", return_value=True)
+@mock.patch("lightning.pytorch.trainer.Trainer.save_checkpoint", mock.MagicMock())
+def test_hpc_ckpt_last_not_created(_, save_checkpoint, tmp_path):
+    """Test that when ckpt_path='last' hpc_ckpt is not created"""
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=1, logger=False)
+    trainer.fit(model, ckpt_path="last")    
+
+    connector = _SignalConnector(trainer)
+    connector._slurm_sigusr_handler_fn(None, None)
+    save_checkpoint.assert_not_called()
+
+
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize("auto_requeue", [True, False])
 @pytest.mark.parametrize("requeue_signal", [signal.SIGUSR1, signal.SIGUSR2, signal.SIGHUP] if not _IS_WINDOWS else [])
 def test_auto_requeue_custom_signal_flag(auto_requeue, requeue_signal):
