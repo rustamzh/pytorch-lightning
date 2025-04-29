@@ -71,8 +71,10 @@ class _SignalConnector:
         for logger in self.trainer.loggers:
             logger.finalize("finished")
 
-        hpc_save_path = self.trainer._checkpoint_connector.hpc_save_path(self.trainer.default_root_dir)
-        self.trainer.save_checkpoint(hpc_save_path)
+        if self.trainer._checkpoint_connector._ckpt_path != "last":
+            log.info(f"Detecting SLURM environment and ckpt_path=='last'. Disabling hpc ckpt")
+            hpc_save_path = self.trainer._checkpoint_connector.hpc_save_path(self.trainer.default_root_dir)
+            self.trainer.save_checkpoint(hpc_save_path)
 
         if self.trainer.is_global_zero:
             # find job id
